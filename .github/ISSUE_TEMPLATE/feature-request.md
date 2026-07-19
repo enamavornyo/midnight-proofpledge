@@ -1,17 +1,17 @@
 ---
 name: Feature request
-about: Submit a proposal for a new feature
-title: ""
-labels: example-bboard, public
+about: Propose a scoped product improvement
+title: "feat: "
+labels: enhancement
 assignees: ""
 ---
 
-Feature Request: Clearly describe your feature, its benefits, and most important the expected outcome. This helps us analyze the proposed solution and develop alternatives
+## User problem
 
-#### Describe the proposed feature.
+## Proposed behavior
 
-#### User Need: What user need does this feature address? Include use cases and user stories.
+## Privacy impact
 
-#### Benefit: What benefits does this feature provide to users and the platform?
+## Alternatives considered
 
-#### Details: Proposed implementation ideas, alternatives considered, dependencies, and any additional information.
+## Acceptance criteria

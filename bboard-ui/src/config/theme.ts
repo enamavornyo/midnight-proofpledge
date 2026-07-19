@@ -13,28 +13,53 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { createTheme, alpha } from '@mui/material';
-
-const midnightGrey = alpha('#a8a8a8', 0.7);
+import { createTheme } from '@mui/material/styles';
 
 export const theme = createTheme({
-  typography: {
-    fontFamily: 'Helvetica',
-    allVariants: {
-      color: 'white',
-    },
-  },
   palette: {
+    mode: 'dark',
     primary: {
-      main: midnightGrey,
-      light: alpha(midnightGrey, 0.5),
-      dark: alpha(midnightGrey, 0.9),
-    },
-    secondary: {
-      main: '#8c8c8c',
+      main: '#a5b4fc',
+      contrastText: '#111827',
     },
     background: {
-      default: '#464655',
+      default: '#070a12',
+      paper: '#111827',
+    },
+    success: {
+      main: '#34d399',
+    },
+  },
+  typography: {
+    fontFamily: 'Inter, Montserrat, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    h2: {
+      fontSize: 'clamp(2.25rem, 7vw, 4.5rem)',
+      letterSpacing: '-0.045em',
+      lineHeight: 1.02,
+    },
+  },
+  shape: {
+    borderRadius: 14,
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          border: '1px solid rgba(165, 180, 252, 0.18)',
+          backgroundImage: 'linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(10, 15, 28, 0.98))',
+        },
+      },
+    },
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 700,
+        },
+      },
     },
   },
 });

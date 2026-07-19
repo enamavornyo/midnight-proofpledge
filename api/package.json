@@ -1,8 +1,8 @@
 {
-  "name": "@midnight-ntwrk/bboard-api",
+  "name": "@proofpledge/api",
   "version": "0.1.0",
-  "author": "IOG",
-  "license": "MIT",
+  "author": "Enam Kwame Avornyo",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "module": "./dist/index.js",
@@ -13,5 +13,14 @@
     "ci": "npm run typecheck && npm run lint && npm run build",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
-  }
+  },
+  "description": "Shared ProofPledge contract API.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enamavornyo/midnight-proofpledge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enamavornyo/midnight-proofpledge/issues"
+  },
+  "homepage": "https://github.com/enamavornyo/midnight-proofpledge#readme"
 }

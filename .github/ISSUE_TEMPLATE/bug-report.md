@@ -1,17 +1,31 @@
 ---
 name: Bug report
-about: Submit a bug report
-title: ""
-labels: example-bboard, public
+about: Report reproducible incorrect behavior
+title: "bug: "
+labels: bug
 assignees: ""
 ---
 
-Bug Report: Provide detailed information about the issue, including steps to reproduce it, expected behavior, and actual behaviour, screenshots or any other relevant information
+## Description
 
-#### Describe what the problem is
+## Steps to reproduce
 
-#### What should be the expected behavior or results?
+1.
+2.
+3.
 
-#### What was the actual behavior or results?
+## Expected result
 
-#### Provide any other clarifying details that would help in reproducing or identifying the issue
+## Actual result
+
+## Environment
+
+- Operating system:
+- Node.js version:
+- npm version:
+- Compact version:
+- Network:
+
+## Additional context
+
+Remove secrets, wallet material, and sensitive logs before submission.

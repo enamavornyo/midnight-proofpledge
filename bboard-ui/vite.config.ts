@@ -32,7 +32,7 @@ export default defineConfig({
           if (id.includes('onchain-runtime-v3')) return 'wasm';
         },
       },
-      },
+    },
     commonjsOptions: {
       // Transform CommonJS to ESM more aggressively
       transformMixedEsModules: true,

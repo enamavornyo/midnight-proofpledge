@@ -1,8 +1,8 @@
 {
-  "name": "@midnight-ntwrk/example-bboard",
+  "name": "midnight-proofpledge",
   "version": "0.1.0",
-  "author": "IOG",
-  "license": "MIT",
+  "author": "Enam Kwame Avornyo",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -61,5 +61,32 @@
     "vite": "^8.0.14",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.6.0"
+  },
+  "description": "Privacy-preserving accountability pledges built on Midnight.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enamavornyo/midnight-proofpledge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enamavornyo/midnight-proofpledge/issues"
+  },
+  "homepage": "https://github.com/enamavornyo/midnight-proofpledge#readme",
+  "keywords": [
+    "midnight",
+    "compact",
+    "zero-knowledge",
+    "privacy",
+    "hackathon"
+  ],
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "compact": "npm run compact --workspace=@proofpledge/contract",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspace=@proofpledge/contract",
+    "build": "npm run build --workspace=@proofpledge/contract && npm run build --workspace=@proofpledge/api && npm run build --workspace=@proofpledge/cli && npm run build --workspace=@proofpledge/ui",
+    "verify": "npm run format:check && npm run compact && npm run typecheck && npm run lint && npm run test && npm run build",
+    "ci": "npm run verify"
   }
 }

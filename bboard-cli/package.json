@@ -1,8 +1,8 @@
 {
-  "name": "@midnight-ntwrk/bboard-cli",
+  "name": "@proofpledge/cli",
   "version": "0.1.0",
-  "author": "IOG",
-  "license": "MIT",
+  "author": "Enam Kwame Avornyo",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -18,5 +18,14 @@
   "devDependencies": {
     "@types/json-schema": "^7.0.15",
     "@types/node": "^25.3.0"
-  }
+  },
+  "description": "Command-line interface for ProofPledge.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enamavornyo/midnight-proofpledge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enamavornyo/midnight-proofpledge/issues"
+  },
+  "homepage": "https://github.com/enamavornyo/midnight-proofpledge#readme"
 }
