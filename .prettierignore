@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+coverage/
+**/reports/
+**/package-lock.json
+contract/src/managed/
+contract/src/**/*.compact
+LICENSE

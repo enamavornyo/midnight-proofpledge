@@ -13,237 +13,185 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/**
- * Provides types and utilities for working with bulletin board contracts.
- *
- * @packageDocumentation
- */
-
-import * as BBoard from '../../contract/src/managed/bboard/contract/index.js';
-
-import { type ContractAddress, convertFieldToBytes } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
-import { type Logger } from 'pino';
-import {
-  type BBoardDerivedState,
-  type BBoardContract,
-  type BBoardProviders,
-  type DeployedBBoardContract,
-  bboardPrivateStateKey,
-} from './common-types.js';
-import { CompiledBBoardContractContract } from '../../contract/src/index';
-import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
-import { combineLatest, map, tap, from, type Observable } from 'rxjs';
+import { type ContractAddress, convertFieldToBytes } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
-import { BBoardPrivateState, createBBoardPrivateState } from '../../contract/src/witnesses.js';
+import { type Logger } from 'pino';
+import { combineLatest, from, map, type Observable, tap } from 'rxjs';
+import * as ProofPledge from '../../contract/src/managed/bboard/contract/index.js';
+import { CompiledProofPledgeContract } from '../../contract/src/index.js';
+import { type ProofPledgePrivateState, createProofPledgePrivateState } from '../../contract/src/witnesses.js';
+import {
+  type DeployedProofPledgeContract,
+  type ProofPledgeContract,
+  type ProofPledgeDerivedState,
+  type ProofPledgeProviders,
+  maxPledgeLength,
+  proofPledgePrivateStateKey,
+} from './common-types.js';
+import * as utils from './utils/index.js';
 
-/** @internal */
-
-/**
- * An API for a deployed bulletin board.
- */
-export interface DeployedBBoardAPI {
+export interface DeployedProofPledgeAPI {
   readonly deployedContractAddress: ContractAddress;
-  readonly state$: Observable<BBoardDerivedState>;
+  readonly deployedContract: DeployedProofPledgeContract;
+  readonly state$: Observable<ProofPledgeDerivedState>;
 
-  post: (message: string) => Promise<void>;
-  takeDown: () => Promise<void>;
+  createPledge: (pledge: string) => Promise<void>;
+  completePledge: () => Promise<void>;
+  archivePledge: () => Promise<void>;
 }
 
-/**
- * Provides an implementation of {@link DeployedBBoardAPI} by adapting a deployed bulletin board
- * contract.
- *
- * @remarks
- * The `BBoardPrivateState` is managed at the DApp level by a private state provider. As such, this
- * private state is shared between all instances of {@link BBoardAPI}, and their underlying deployed
- * contracts. The private state defines a `'secretKey'` property that effectively identifies the current
- * user, and is used to determine if the current user is the owner of the message as the observable
- * contract state changes.
- *
- * In the future, Midnight.js will provide a private state provider that supports private state storage
- * keyed by contract address. This will remove the current workaround of sharing private state across
- * the deployed bulletin board contracts, and allows for a unique secret key to be generated for each bulletin
- * board that the user interacts with.
- */
-// TODO: Update BBoardAPI to use contract level private state storage.
-export class BBoardAPI implements DeployedBBoardAPI {
-  /** @internal */
+export class ProofPledgeAPI implements DeployedProofPledgeAPI {
+  readonly deployedContractAddress: ContractAddress;
+  readonly state$: Observable<ProofPledgeDerivedState>;
+
   private constructor(
-    public readonly deployedContract: DeployedBBoardContract,
-    providers: BBoardProviders,
+    public readonly deployedContract: DeployedProofPledgeContract,
+    private readonly providers: ProofPledgeProviders,
     private readonly logger?: Logger,
   ) {
     this.deployedContractAddress = deployedContract.deployTxData.public.contractAddress;
     providers.privateStateProvider.setContractAddress(this.deployedContractAddress);
+
     this.state$ = combineLatest(
       [
-        // Combine public (ledger) state with...
         providers.publicDataProvider.contractStateObservable(this.deployedContractAddress, { type: 'latest' }).pipe(
-          map((contractState) => BBoard.ledger(contractState.data)),
+          map((contractState) => ProofPledge.ledger(contractState.data)),
           tap((ledgerState) =>
             logger?.trace({
               ledgerStateChanged: {
-                ledgerState: {
-                  ...ledgerState,
-                  state: ledgerState.state === BBoard.State.OCCUPIED ? 'occupied' : 'vacant',
-                  owner: toHex(ledgerState.owner),
-                },
+                state: stateLabel(ledgerState.state),
+                pledge: ledgerState.pledge.value,
+                sequence: ledgerState.sequence,
+                owner: toHex(ledgerState.owner),
               },
             }),
           ),
         ),
-        // ...private state...
-        //    since the private state of the bulletin board application never changes, we can query the
-        //    private state once and always use the same value with `combineLatest`. In applications
-        //    where the private state is expected to change, we would need to make this an `Observable`.
-        from(providers.privateStateProvider.get(bboardPrivateStateKey) as Promise<BBoardPrivateState>),
+        from(readPrivateState(providers, proofPledgePrivateStateKey)),
       ],
-      // ...and combine them to produce the required derived state.
       (ledgerState, privateState) => {
-        const hashedSecretKey = BBoard.pureCircuits.publicKey(
+        const localOwnerCommitment = ProofPledge.pureCircuits.publicKey(
           privateState.secretKey,
           convertFieldToBytes(32, ledgerState.sequence, 'api/src/index.ts'),
         );
 
         return {
           state: ledgerState.state,
-          message: ledgerState.message.value,
+          pledge: ledgerState.pledge.is_some ? ledgerState.pledge.value : undefined,
           sequence: ledgerState.sequence,
-          isOwner: toHex(ledgerState.owner) === toHex(hashedSecretKey),
+          isOwner: toHex(ledgerState.owner) === toHex(localOwnerCommitment),
         };
       },
     );
   }
 
-  /**
-   * Gets the address of the current deployed contract.
-   */
-  readonly deployedContractAddress: ContractAddress;
+  async createPledge(pledge: string): Promise<void> {
+    const normalizedPledge = pledge.trim();
+    if (!normalizedPledge) {
+      throw new Error('Pledge text is required.');
+    }
+    if (normalizedPledge.length > maxPledgeLength) {
+      throw new Error(`Pledge text must not exceed ${maxPledgeLength} characters.`);
+    }
 
-  /**
-   * Gets an observable stream of state changes based on the current public (ledger),
-   * and private state data.
-   */
-  readonly state$: Observable<BBoardDerivedState>;
-
-  /**
-   * Attempts to post a given message to the bulletin board.
-   *
-   * @param message The message to post.
-   *
-   * @remarks
-   * This method can fail during local circuit execution if the bulletin board is currently occupied.
-   */
-  async post(message: string): Promise<void> {
-    this.logger?.info(`postingMessage: ${message}`);
-
-    const txData = await this.deployedContract.callTx.post(message);
-
-    this.logger?.trace({
-      transactionAdded: {
-        circuit: 'post',
-        txHash: txData.public.txHash,
-        blockHeight: txData.public.blockHeight,
-      },
-    });
+    this.activatePrivateStateScope();
+    this.logger?.info({ pledgeLength: normalizedPledge.length }, 'Creating pledge');
+    const txData = await this.deployedContract.callTx.createPledge(normalizedPledge);
+    logTransaction(this.logger, 'createPledge', txData.public);
   }
 
-  /**
-   * Attempts to take down any currently posted message on the bulletin board.
-   *
-   * @remarks
-   * This method can fail during local circuit execution if the bulletin board is currently vacant,
-   * or if the currently posted message isn't owned by the owner computed from the current private
-   * state.
-   */
-  async takeDown(): Promise<void> {
-    this.logger?.info('takingDownMessage');
-
-    const txData = await this.deployedContract.callTx.takeDown();
-
-    this.logger?.trace({
-      transactionAdded: {
-        circuit: 'takeDown',
-        txHash: txData.public.txHash,
-        blockHeight: txData.public.blockHeight,
-      },
-    });
+  async completePledge(): Promise<void> {
+    this.activatePrivateStateScope();
+    this.logger?.info('Completing pledge');
+    const txData = await this.deployedContract.callTx.completePledge();
+    logTransaction(this.logger, 'completePledge', txData.public);
   }
 
-  /**
-   * Deploys a new bulletin board contract to the network.
-   *
-   * @param providers The bulletin board providers.
-   * @param logger An optional 'pino' logger to use for logging.
-   * @returns A `Promise` that resolves with a {@link BBoardAPI} instance that manages the newly deployed
-   * {@link DeployedBBoardContract}; or rejects with a deployment error.
-   */
-  static async deploy(providers: BBoardProviders, logger?: Logger): Promise<BBoardAPI> {
-    logger?.info('deployContract');
-
-    const deployedBBoardContract = await deployContract(providers, {
-      compiledContract: CompiledBBoardContractContract,
-      privateStateId: bboardPrivateStateKey,
-      initialPrivateState: createBBoardPrivateState(utils.randomBytes(32)),
-    });
-
-    logger?.trace({
-      contractDeployed: {
-        finalizedDeployTxData: deployedBBoardContract.deployTxData.public,
-      },
-    });
-
-    return new BBoardAPI(deployedBBoardContract, providers, logger);
+  async archivePledge(): Promise<void> {
+    this.activatePrivateStateScope();
+    this.logger?.info('Archiving pledge');
+    const txData = await this.deployedContract.callTx.archivePledge();
+    logTransaction(this.logger, 'archivePledge', txData.public);
   }
 
-  /**
-   * Finds an already deployed bulletin board contract on the network, and joins it.
-   *
-   * @param providers The bulletin board providers.
-   * @param contractAddress The contract address of the deployed bulletin board contract to search for and join.
-   * @param logger An optional 'pino' logger to use for logging.
-   * @returns A `Promise` that resolves with a {@link BBoardAPI} instance that manages the joined
-   * {@link DeployedBBoardContract}; or rejects with an error.
-   */
-  static async join(providers: BBoardProviders, contractAddress: ContractAddress, logger?: Logger): Promise<BBoardAPI> {
-    logger?.info({
-      joinContract: {
-        contractAddress,
-      },
+  // One provider instance can serve several deployments, so every protected action
+  // restores the contract-specific scope before witness data is requested.
+  private activatePrivateStateScope(): void {
+    this.providers.privateStateProvider.setContractAddress(this.deployedContractAddress);
+  }
+
+  static async deploy(providers: ProofPledgeProviders, logger?: Logger): Promise<ProofPledgeAPI> {
+    logger?.info('Deploying ProofPledge contract');
+
+    const deployedContract = await deployContract(providers, {
+      compiledContract: CompiledProofPledgeContract,
+      privateStateId: proofPledgePrivateStateKey,
+      initialPrivateState: createProofPledgePrivateState(utils.randomBytes(32)),
     });
 
-    const deployedBBoardContract = await findDeployedContract<BBoardContract>(providers, {
+    logger?.trace({ contractDeployed: deployedContract.deployTxData.public });
+    return new ProofPledgeAPI(deployedContract, providers, logger);
+  }
+
+  static async join(
+    providers: ProofPledgeProviders,
+    contractAddress: ContractAddress,
+    logger?: Logger,
+  ): Promise<ProofPledgeAPI> {
+    logger?.info({ contractAddress }, 'Joining ProofPledge contract');
+
+    const deployedContract = await findDeployedContract<ProofPledgeContract>(providers, {
       contractAddress,
-      compiledContract: CompiledBBoardContractContract,
-      privateStateId: bboardPrivateStateKey,
-      initialPrivateState: await BBoardAPI.getPrivateState(providers, contractAddress),
+      compiledContract: CompiledProofPledgeContract,
+      privateStateId: proofPledgePrivateStateKey,
+      initialPrivateState: await ProofPledgeAPI.getPrivateState(providers, contractAddress),
     });
 
-    logger?.trace({
-      contractJoined: {
-        finalizedDeployTxData: deployedBBoardContract.deployTxData.public,
-      },
-    });
-
-    return new BBoardAPI(deployedBBoardContract, providers, logger);
+    logger?.trace({ contractJoined: deployedContract.deployTxData.public });
+    return new ProofPledgeAPI(deployedContract, providers, logger);
   }
 
   private static async getPrivateState(
-    providers: BBoardProviders,
+    providers: ProofPledgeProviders,
     contractAddress: ContractAddress,
-  ): Promise<BBoardPrivateState> {
+  ): Promise<ProofPledgePrivateState> {
     providers.privateStateProvider.setContractAddress(contractAddress);
-    const existingPrivateState = await providers.privateStateProvider.get(bboardPrivateStateKey);
-    return existingPrivateState ?? createBBoardPrivateState(utils.randomBytes(32));
+    const existingPrivateState = await providers.privateStateProvider.get(proofPledgePrivateStateKey);
+    return existingPrivateState ?? createProofPledgePrivateState(utils.randomBytes(32));
   }
 }
 
-/**
- * A namespace that represents the exports from the `'utils'` sub-package.
- *
- * @public
- */
-export * as utils from './utils/index.js';
+const readPrivateState = async (
+  providers: ProofPledgeProviders,
+  privateStateId: typeof proofPledgePrivateStateKey,
+): Promise<ProofPledgePrivateState> => {
+  const privateState = await providers.privateStateProvider.get(privateStateId);
+  if (privateState === null) {
+    throw new Error('ProofPledge private state is unavailable for this contract.');
+  }
+  return privateState;
+};
 
+const stateLabel = (state: ProofPledge.State): 'empty' | 'open' | 'completed' => {
+  if (state === ProofPledge.State.OPEN) return 'open';
+  if (state === ProofPledge.State.COMPLETED) return 'completed';
+  return 'empty';
+};
+
+const logTransaction = (
+  logger: Logger | undefined,
+  circuit: 'createPledge' | 'completePledge' | 'archivePledge',
+  transaction: { readonly txHash: string; readonly blockHeight: number },
+): void => {
+  logger?.trace({
+    transactionAdded: {
+      circuit,
+      txHash: transaction.txHash,
+      blockHeight: transaction.blockHeight,
+    },
+  });
+};
+
+export * as utils from './utils/index.js';
 export * from './common-types.js';

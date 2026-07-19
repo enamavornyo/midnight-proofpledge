@@ -26,17 +26,14 @@ import {
   type Ledger,
   ledger,
 } from "../managed/bboard/contract/index.js";
-import { type BBoardPrivateState, witnesses } from "../witnesses.js";
+import { type ProofPledgePrivateState, witnesses } from "../witnesses.js";
 
-/**
- * Serves as a testbed to exercise the contract in tests
- */
-export class BBoardSimulator {
-  readonly contract: Contract<BBoardPrivateState>;
-  circuitContext: CircuitContext<BBoardPrivateState>;
+export class ProofPledgeSimulator {
+  readonly contract: Contract<ProofPledgePrivateState>;
+  circuitContext: CircuitContext<ProofPledgePrivateState>;
 
   constructor(secretKey: Uint8Array) {
-    this.contract = new Contract<BBoardPrivateState>(witnesses);
+    this.contract = new Contract<ProofPledgePrivateState>(witnesses);
     const {
       currentPrivateState,
       currentContractState,
@@ -55,46 +52,45 @@ export class BBoardSimulator {
     };
   }
 
-  /***
-   * Switch to a different secret key for a different user
-   *
-   * TODO: is there a nicer abstraction for testing multi-user dApps?
-   */
-  public switchUser(secretKey: Uint8Array) {
-    this.circuitContext.currentPrivateState = {
-      secretKey,
-    };
+  public switchUser(secretKey: Uint8Array): void {
+    this.circuitContext.currentPrivateState = { secretKey };
   }
 
   public getLedger(): Ledger {
     return ledger(this.circuitContext.currentQueryContext.state);
   }
 
-  public getPrivateState(): BBoardPrivateState {
+  public getPrivateState(): ProofPledgePrivateState {
     return this.circuitContext.currentPrivateState;
   }
 
-  public post(message: string): Ledger {
-    // Update the current context to be the result of executing the circuit.
-    this.circuitContext = this.contract.impureCircuits.post(
+  public createPledge(pledge: string): Ledger {
+    this.circuitContext = this.contract.impureCircuits.createPledge(
       this.circuitContext,
-      message,
+      pledge,
     ).context;
-    return ledger(this.circuitContext.currentQueryContext.state);
+    return this.getLedger();
   }
 
-  public takeDown(): Ledger {
-    this.circuitContext = this.contract.impureCircuits.takeDown(
+  public completePledge(): Ledger {
+    this.circuitContext = this.contract.impureCircuits.completePledge(
       this.circuitContext,
     ).context;
-    return ledger(this.circuitContext.currentQueryContext.state);
+    return this.getLedger();
+  }
+
+  public archivePledge(): Ledger {
+    this.circuitContext = this.contract.impureCircuits.archivePledge(
+      this.circuitContext,
+    ).context;
+    return this.getLedger();
   }
 
   public publicKey(): Uint8Array {
     const sequence = convertFieldToBytes(
       32,
       this.getLedger().sequence,
-      "bboard-simulator.ts",
+      "proof-pledge-simulator.ts",
     );
     return this.contract.circuits.publicKey(
       this.circuitContext,

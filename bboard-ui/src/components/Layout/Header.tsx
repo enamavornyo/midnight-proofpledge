@@ -13,33 +13,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import React from 'react';
-import { AppBar, Box } from '@mui/material';
+import { AppBar, Box, Stack, Toolbar, Typography } from '@mui/material';
+import { type ReactElement } from 'react';
 
-/**
- * A simple application level header for the bulletin board application.
- */
-export const Header: React.FC = () => (
-  <AppBar
-    position="static"
-    data-testid="header"
-    sx={{
-      backgroundColor: '#000',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    }}
-  >
-    <Box
-      sx={{
-        display: 'flex',
-        px: 10,
-        py: 2.2,
-        alignItems: 'center',
-      }}
-      data-testid="header-logo"
-    >
-      <img src="/midnight-logo.png" alt="logo-image" height={66} />
-    </Box>
+export const Header = (): ReactElement => (
+  <AppBar position="static" elevation={0} color="transparent" data-testid="header">
+    <Toolbar sx={{ py: 1.5, justifyContent: 'space-between' }}>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+        <Box
+          component="span"
+          sx={{
+            width: 34,
+            height: 34,
+            borderRadius: 2,
+            display: 'grid',
+            placeItems: 'center',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            fontWeight: 800,
+          }}
+        >
+          P
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>
+          ProofPledge
+        </Typography>
+      </Stack>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+          Powered by
+        </Typography>
+        <Box component="img" src="/midnight-logo.png" alt="Midnight" height={36} />
+      </Stack>
+    </Toolbar>
   </AppBar>
 );

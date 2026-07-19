@@ -13,47 +13,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import React, { useEffect, useState } from 'react';
-import { Box } from '@mui/material';
-import { MainLayout, Board } from './components';
-import { useDeployedBoardContext } from './hooks';
-import { type BoardDeployment } from './contexts';
+import { Stack } from '@mui/material';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { type Observable } from 'rxjs';
+import { type ContractAddress } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
+import { MainLayout, PledgeCard, PledgeStartCard } from './components/index.js';
+import { type PledgeDeployment } from './contexts/BrowserProofPledgeManager.js';
+import { useProofPledgeContext } from './hooks/index.js';
 
-/**
- * The root bulletin board application component.
- *
- * @remarks
- * The {@link App} component requires a `<DeployedBoardProvider />` parent in order to retrieve
- * information about current bulletin board deployments.
- *
- * @internal
- */
-const App: React.FC = () => {
-  const boardApiProvider = useDeployedBoardContext();
-  const [boardDeployments, setBoardDeployments] = useState<Array<Observable<BoardDeployment>>>([]);
+const App = (): ReactElement => {
+  const provider = useProofPledgeContext();
+  const [deployments, setDeployments] = useState<Array<Observable<PledgeDeployment>>>([]);
 
   useEffect(() => {
-    const subscription = boardApiProvider.boardDeployments$.subscribe(setBoardDeployments);
+    const subscription = provider.deployments$.subscribe(setDeployments);
+    return () => subscription.unsubscribe();
+  }, [provider]);
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [boardApiProvider]);
+  const deployContract = useCallback(() => {
+    provider.resolve();
+  }, [provider]);
+
+  const joinContract = useCallback(
+    (contractAddress: ContractAddress) => {
+      provider.resolve(contractAddress);
+    },
+    [provider],
+  );
 
   return (
-    <Box sx={{ background: '#000', minHeight: '100vh' }}>
-      <MainLayout>
-        {boardDeployments.map((boardDeployment, idx) => (
-          <div data-testid={`board-${idx}`} key={`board-${idx}`}>
-            <Board boardDeployment$={boardDeployment} />
-          </div>
+    <MainLayout>
+      <Stack spacing={3} sx={{ width: '100%', alignItems: 'center' }}>
+        {deployments.map((deployment, index) => (
+          <PledgeCard key={`pledge-${index}`} deployment$={deployment} />
         ))}
-        <div data-testid="board-start">
-          <Board />
-        </div>
-      </MainLayout>
-    </Box>
+        <PledgeStartCard onDeploy={deployContract} onJoin={joinContract} />
+      </Stack>
+    </MainLayout>
   );
 };
 

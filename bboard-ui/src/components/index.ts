@@ -13,5 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export * from './Layout';
-export * from './Board';
+export * from './Layout/index.js';
+export * from './PledgeCard.js';
+export * from './PledgeStartCard.js';

@@ -112,7 +112,7 @@ export const waitForUnshieldedFunds = async (
   }
   const initialBalance = initialState.balances[tokenType.raw];
   if (initialBalance === undefined || initialBalance === 0n) {
-    logger.info(`Your wallet initial balance is: 0 (not yet initialized)`);
+    logger.info(`Wallet initial balance is 0 (not yet initialized)`);
     logger.info(`Waiting to receive tokens...`);
     return Rx.firstValueFrom(
       wallet.state().pipe(

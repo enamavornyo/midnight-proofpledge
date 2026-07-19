@@ -14,21 +14,11 @@
 // limitations under the License.
 
 import { useContext } from 'react';
-import { DeployedBoardContext, type DeployedBoardAPIProvider } from '../contexts';
+import { ProofPledgeContext } from '../contexts/ProofPledgeContext.js';
+import { type ProofPledgeAPIProvider } from '../contexts/BrowserProofPledgeManager.js';
 
-/**
- * Retrieves the currently in-scope deployed boards provider.
- *
- * @returns The currently in-scope {@link DeployedBBoardAPIProvider} implementation.
- *
- * @internal
- */
-export const useDeployedBoardContext = (): DeployedBoardAPIProvider => {
-  const context = useContext(DeployedBoardContext);
-
-  if (!context) {
-    throw new Error('A <DeployedBoardProvider /> is required.');
-  }
-
+export const useProofPledgeContext = (): ProofPledgeAPIProvider => {
+  const context = useContext(ProofPledgeContext);
+  if (!context) throw new Error('A <ProofPledgeProvider /> parent is required.');
   return context;
 };

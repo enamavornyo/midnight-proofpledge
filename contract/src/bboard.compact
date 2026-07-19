@@ -18,43 +18,59 @@ pragma language_version 0.23;
 import CompactStandardLibrary;
 
 export enum State {
-  VACANT,
-  OCCUPIED
+  EMPTY,
+  OPEN,
+  COMPLETED
 }
 
 export ledger state: State;
 
-export ledger message: Maybe<Opaque<"string">>;
+export ledger pledge: Maybe<Opaque<"string">>;
 
 export ledger sequence: Counter;
 
 export ledger owner: Bytes<32>;
 
 constructor() {
-  state = State.VACANT;
-  message = none<Opaque<"string">>();
+  state = State.EMPTY;
+  pledge = none<Opaque<"string">>();
   sequence.increment(1);
 }
 
+// The witness reads the ownership secret from local private state.
 witness localSecretKey(): Bytes<32>;
 
-export circuit post(newMessage: Opaque<"string">): [] {
-  assert(state == State.VACANT, "Attempted to post to an occupied board");
+export circuit createPledge(newPledge: Opaque<"string">): [] {
+  assert(state == State.EMPTY, "An active pledge already exists");
+  // Binding the commitment to the sequence prevents authorization reuse across pledge lifecycles.
   owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
-  message = disclose(some<Opaque<"string">>(newMessage));
-  state = State.OCCUPIED;
+  pledge = disclose(some<Opaque<"string">>(newPledge));
+  state = State.OPEN;
 }
 
-export circuit takeDown(): Opaque<"string"> {
-  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
-  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
-  const formerMsg = message.value;
-  state = State.VACANT;
+export circuit completePledge(): [] {
+  assert(state == State.OPEN, "Only an open pledge can be completed");
+  assert(
+    owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>),
+    "The current private state does not own this pledge"
+  );
+  state = State.COMPLETED;
+}
+
+export circuit archivePledge(): Opaque<"string"> {
+  assert(state == State.COMPLETED, "Only a completed pledge can be archived");
+  assert(
+    owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>),
+    "The current private state does not own this pledge"
+  );
+  const archivedPledge = pledge.value;
+  state = State.EMPTY;
+  // A later pledge receives a distinct ownership domain even when the same local secret is reused.
   sequence.increment(1);
-  message = none<Opaque<"string">>();
-  return formerMsg;
+  pledge = none<Opaque<"string">>();
+  return archivedPledge;
 }
 
 export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
-  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "proofpledge:owner:"), sequence, sk]);
 }

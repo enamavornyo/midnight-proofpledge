@@ -1,5 +1,9 @@
 {
-  "name": "@midnight-ntwrk/bboard-contract",
+  "name": "@proofpledge/contract",
+  "version": "0.1.0",
+  "author": "Enam Kwame Avornyo",
+  "license": "Apache-2.0",
+  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -31,5 +35,14 @@
     "globals": "^17.6.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
-  }
+  },
+  "description": "Compact contract and tests for ProofPledge.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enamavornyo/midnight-proofpledge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enamavornyo/midnight-proofpledge/issues"
+  },
+  "homepage": "https://github.com/enamavornyo/midnight-proofpledge#readme"
 }

@@ -1,26 +1,31 @@
-## Overview
+## Summary
 
-<!-- Describe your changes briefly here, with some context as to why this is needed. -->
+<!-- State the problem and the implemented change. -->
 
-## Submission Checklist
+## Verification
 
-<!-- Please check all the boxes that apply to your pull request. -->
+<!-- List the exact commands run and their results. -->
 
-- [ ] Useful pull request description
-- [ ] Tests are provided (if possible)
-- [ ] Key commits have useful messages
-- [ ] All check jobs of the CI have succeeded
-- [ ] Self-reviewed the diff
-- [ ] Reviewer requested
-- [ ] Update README file (if relevant)
-- [ ] Update documentation (if relevant)
-- [ ] No new TODOs introduced
+- [ ] `npm run format:check`
+- [ ] `npm run compact`
+- [ ] `npm run typecheck`
+- [ ] `npm run lint`
+- [ ] `npm run test`
+- [ ] `npm run build`
 
-## Links
+## Privacy and security
 
-<!--
-- Link any relevant Confluence or additional Jira tickets if need be
-- If your PR closes some of the existing issues, please add links to them here.
-  Mentioned issues will be automatically closed.
-  Usage: "Closes #<issue number>", or "Closes (paste link of issue)"
--->
+- [ ] Public and private data boundaries remain correct
+- [ ] No secrets, wallet data, local databases, or sensitive logs are included
+- [ ] Contract invariants and failure paths are covered by tests
+
+## Documentation
+
+- [ ] README updated when setup or behavior changed
+- [ ] Changelog updated
+- [ ] Architecture or privacy documentation updated when relevant
+- [ ] Verification record updated
+
+## Related work
+
+<!-- Add issue links or supporting context. -->

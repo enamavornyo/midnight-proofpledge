@@ -15,10 +15,8 @@
 
 import { Buffer } from 'buffer';
 
-// While Vite maps the mode that the application is running in by setting either the
-// `PROD` or `DEV` variables, we also need to ensure that `NODE_ENV` is set correctly
-// because we also use third-party libraries within the browser (such as Apollo Client),
-// that might expect it.
+// Vite exposes the active mode through `PROD` and `DEV`, while some browser
+// dependencies still inspect `process.env.NODE_ENV`.
 //
 // @ts-expect-error - support third-party libraries that require `NODE_ENV`.
 globalThis.process = {
@@ -27,6 +25,5 @@ globalThis.process = {
   },
 };
 
-// We'll also make use of `Buffer` objects, so we'll ensure a pollyfill for one is
-// present on the global object.
+// Midnight browser dependencies require a global `Buffer` polyfill.
 globalThis.Buffer = Buffer;
