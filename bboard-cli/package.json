@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@types/json-schema": "^7.0.15",
-    "@types/node": "^25.3.0"
+    "@types/node": "^26.2.0"
   },
   "description": "Command-line interface for ProofPledge.",
   "repository": {
